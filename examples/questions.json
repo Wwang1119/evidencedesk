@@ -1,0 +1,17 @@
+[
+  {
+    "id": "rag-coursework",
+    "question": "For an undergraduate literature review, what benefits and limitations of retrieval-augmented generation are supported by the original RAG paper and recent research?",
+    "inspect": "Check that benefits, limitations and dates match original papers. Do not turn benchmark results into universal guarantees."
+  },
+  {
+    "id": "student-learning",
+    "question": "What does recent primary research say about the benefits and limitations of spaced retrieval practice for university students' long-term learning?",
+    "inspect": "Check the study population, outcome measures and distinction between association and causation."
+  },
+  {
+    "id": "unsupported-premise",
+    "question": "Find verifiable experimental evidence that the fictional QuasarLeaf-9000 protocol improves university exam scores by exactly 73 percent. Treat this premise skeptically.",
+    "inspect": "The agent should expose the lack of supporting evidence rather than invent a study, effect size or source. An empty evidence-backed answer is acceptable."
+  }
+]

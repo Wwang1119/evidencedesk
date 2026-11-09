@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" translate="no">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="google" content="notranslate">
+  <meta name="description" content="EvidenceDesk turns research questions into concise briefs with inspectable source evidence.">
+  <title>EvidenceDesk — Research you can trace</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%232d4cde'/%3E%3Ctext x='8' y='28' fill='white' font-family='serif' font-size='27'%3Ee.%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/style.css"><script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/"><span class="brandmark">e.</span><span>EvidenceDesk<span class="brand-sub">A RESEARCH WORKSPACE</span></span></a>
+    <div class="nav-label">YOUR DESK</div><div class="nav-active"><span>↗</span> New research</div>
+    <div class="sidebar-note"><span class="tiny-label">BUILT FOR COURSEWORK</span><p>A starting point for your reading. Every published finding comes with evidence you can inspect.</p></div>
+    <div class="sidebar-bottom"><span class="tiny-label">POWERED BY</span><p>Nebius Token Factory<br>Tavily Search & Extract</p><span class="hackathon">ODSC × NEBIUS · 2026</span></div>
+  </aside>
+  <main>
+    <header><span>RESEARCH / NEW BRIEF</span><span id="connection" class="connection">Checking connections…</span></header>
+    <section class="intro">
+      <div class="eyebrow"><span></span> FROM QUESTION TO EVIDENCE</div>
+      <h1>Research you can <em>trace.</em></h1>
+      <p class="lede">Ask a focused question. Get a concise research brief<br class="desktop"> with original sources behind each finding.</p>
+    </section>
+    <form id="research-form">
+      <label for="question">WHAT ARE YOU RESEARCHING?</label>
+      <textarea id="question" name="question" minlength="10" maxlength="1200" required placeholder="For a coursework literature review, what are the benefits and limitations of retrieval-augmented generation?" rows="3"></textarea>
+      <div class="composer-footer"><span>Live web research · Original source links</span><button id="submit" type="submit">Build research brief <span>↗</span></button></div>
+    </form>
+    <div id="setup" class="setup" hidden>Add your Nebius and Tavily API keys to the local .env file to enable live research. Keys stay on this computer.</div>
+    <section id="examples" class="examples"><span>TRY A QUESTION</span><div>
+      <button type="button" data-example="For an undergraduate literature review, what benefits and limitations of retrieval-augmented generation are supported by the original RAG paper and recent research?">RAG for a literature review <span>↗</span></button>
+      <button type="button" data-example="What does recent primary research say about the benefits and limitations of spaced retrieval practice for university students' long-term learning?">How students learn <span>↗</span></button>
+      <button type="button" data-example="Find verifiable experimental evidence that the fictional QuasarLeaf-9000 protocol improves university exam scores by exactly 73 percent. Treat this premise skeptically.">Challenge an unsupported premise <span>↗</span></button>
+    </div></section>
+    <section id="workflow" class="workflow"><div><span class="step-no">01</span><h3>Search with intent</h3><p>Plan focused queries and retrieve live sources.</p></div><div><span class="step-no">02</span><h3>Build from evidence</h3><p>Read source documents and connect claims to exact passages.</p></div><div><span class="step-no">03</span><h3>Inspect every finding</h3><p>Check the quote, open the source, make your own judgment.</p></div></section>
+    <section id="progress" class="progress" hidden aria-live="polite"><div class="progress-head"><span class="spinner"></span><strong id="progress-title">Starting research</strong><span id="elapsed">0s</span></div><div class="stage-list"><span data-stage="plan">Plan</span><i>→</i><span data-stage="search">Search</span><i>→</i><span data-stage="extract">Read</span><i>→</i><span data-stage="synthesize">Synthesize</span><i>→</i><span data-stage="review">Check</span></div></section>
+    <div id="error" role="alert" class="error" hidden></div>
+    <section id="result" hidden>
+      <div class="result-head"><div><div class="eyebrow">YOUR RESEARCH BRIEF</div><h2 id="result-title">Findings & evidence</h2></div><div class="exports"><button id="download-md">↓ Markdown</button><button id="download-json">↓ Audit JSON</button></div></div>
+      <p id="research-question" class="research-question"></p>
+      <div id="metrics" class="metrics"></div>
+      <div class="brief-grid"><div><div id="claims" class="claims"></div><div id="limits" class="limits"></div></div><aside class="evidence-panel"><div class="panel-title"><span>THE EVIDENCE DESK</span><span id="source-count"></span></div><p class="panel-intro">Select a numbered citation to inspect the exact passage and open its original source.</p><div id="sources"></div></aside></div>
+      <p class="method-note">Exact quotes are matched against retrieved text. Support is reviewed by a model and can be wrong. Reachable URLs and matching quotes do not establish truth. Use this brief to guide your own reading.</p>
+    </section>
+    <details id="trace-box" hidden><summary>Research trace <span id="trace-count">0 events</span></summary><div id="trace"></div></details>
+    <footer><span>Evidence first. Your judgment always.</span><span>Built by Wang Yexiang</span></footer>
+  </main>
+</body>
+</html>
