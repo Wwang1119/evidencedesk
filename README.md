@@ -6,7 +6,7 @@ Built by **Wang Yexiang** for the **ODSC × Nebius Hackathon — Build a Researc
 
 EvidenceDesk helps university students start a coursework literature review: ask a focused question, search the live web, read selected documents, and inspect the original evidence behind each finding. It is a lightweight Python application; all model inference runs on Nebius Token Factory. No local models, vector database, JavaScript build system or agent framework are required.
 
-> **Validation status:** The offline contract and citation tests pass. Live Token Factory/Tavily tests and the recorded demo are pending account activation and API keys. No example answer or live benchmark is fabricated. This notice will be updated only after real runs are recorded.
+> **Validation status (2026-11-10):** The 27 offline contract and citation tests pass. Real Tavily Search and Extract calls through the project's provider adapter have passed: search returned five results, and extraction returned a substantive official documentation page. Nebius Token Factory inference, the complete research pipeline, and the recorded demo are still pending a usable Nebius API key. No complete live research answer or benchmark is claimed.
 
 ## Run locally
 
