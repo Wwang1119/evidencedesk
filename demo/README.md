@@ -1,6 +1,6 @@
 # EvidenceDesk demo recording
 
-Status: pending live API activation. This file is a recording plan, not evidence of a completed video.
+Status: both real API connectivity probes passed on November 10, 2026. Full research validation and recording are pending resolution of this workstation's synthetic proxy DNS addresses, which currently cause source reachability checks to reject documents. This file is a recording plan, not evidence of a completed video.
 
 ## Record a real 2–3 minute run
 

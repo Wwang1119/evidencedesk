@@ -6,7 +6,7 @@ Built by **Wang Yexiang** for the **ODSC × Nebius Hackathon — Build a Researc
 
 EvidenceDesk helps university students start a coursework literature review: ask a focused question, search the live web, read selected documents, and inspect the original evidence behind each finding. It is a lightweight Python application; all model inference runs on Nebius Token Factory. No local models, vector database, JavaScript build system or agent framework are required.
 
-> **Validation status (2026-11-10):** The 27 offline contract and citation tests pass. Real Tavily Search and Extract calls through the project's provider adapter have passed: search returned five results, and extraction returned a substantive official documentation page. Nebius Token Factory inference, the complete research pipeline, and the recorded demo are still pending a usable Nebius API key. No complete live research answer or benchmark is claimed.
+> **Validation status (2026-11-10):** The 27 offline contract and citation tests pass. Both required providers have passed real connectivity probes through the project's provider adapter: Nebius generated schema-valid JSON using the configured Qwen open model, and Tavily returned live search results. A separate Tavily Extract probe also passed. The first three-question live evaluation retrieved no usable sources because this workstation's proxy returned synthetic DNS addresses, which the public-URL gate rejected. Complete research evaluation and the recorded demo are still pending; no complete live research answer or benchmark is claimed yet.
 
 ## Run locally
 
@@ -28,6 +28,8 @@ python -m evidencedesk serve
 
 Open **http://127.0.0.1:8765**. Choose an example or enter your question, then select **Build research brief**. Click a numbered citation to inspect its quote, source context and original URL. Export Markdown for your notes or Audit JSON to inspect the research trace.
 
+Source verification requires DNS answers containing globally routable addresses. A proxy that returns synthetic addresses such as `198.18.0.0/15` will cause the URL gate to exclude sources, even when the two provider APIs are reachable. Network compatibility for that setup is being investigated; the private-address check remains enabled.
+
 For the exact dependency versions used during development, install `requirements-lock.txt` before the editable install.
 
 CLI alternative:
@@ -48,7 +50,7 @@ The CLI prints a Markdown brief, with source links attached to claims. `--out` w
 | `NEBIUS_MODEL` | The live Token Factory model catalog (`models` command) | Exact chat model ID; must support JSON mode |
 | `TAVILY_API_KEY` | [Tavily](https://app.tavily.com/) | Live web search and document extraction |
 
-The example model is `meta-llama/Meta-Llama-3.1-8B-Instruct-fast`, shown in [Nebius' inference examples](https://nebius.com/services/token-factory/inference-service). Availability is account-dependent; verify against the live catalog. The [Nebius Builder Program](https://dev.nebius.com/builders) offers starter credits, subject to its eligibility and partner terms. LangSmith is optional and not required by this project.
+The default model is `Qwen/Qwen3-235B-A22B-Instruct-2507`, verified in the live catalog and with a real JSON inference call on November 10, 2026. Availability can change; verify against the live catalog. The [Nebius Builder Program](https://dev.nebius.com/builders) offers starter credits, subject to its eligibility and partner terms. LangSmith is optional and not required by this project.
 
 **Put actual keys only in the local `.env`.** `.env`, virtual environments, recordings and `.local/` are ignored by Git. Never paste keys into the UI, screenshots, issues or public logs. The browser receives connection booleans, not credentials. `.env.example` contains empty placeholders. Restart the service after changing account setup; the local status endpoint also rereads settings. The shell's environment, if set, takes precedence over `.env`.
 

@@ -15,7 +15,7 @@ class SetupError(Exception):
 class Settings:
     nebius_key: str = field(repr=False)
     tavily_key: str = field(repr=False)
-    model: str = "meta-llama/Meta-Llama-3.1-8B-Instruct-fast"
+    model: str = "Qwen/Qwen3-235B-A22B-Instruct-2507"
     max_sources: int = 6
     max_searches: int = 3
 
