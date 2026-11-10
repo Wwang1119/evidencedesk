@@ -20,6 +20,9 @@ Do not claim that search coverage is exhaustive or that model review guarantees 
 
 PLAN = SAFETY + """Plan two complementary web searches to answer the research question.
 Prefer original papers, official documentation and public institutions where appropriate.
+At least one query must target the named original paper or an authoritative primary source,
+using its title/authors and a site filter where helpful, rather than a general benefits blog.
+For a named original paper, use its full title and year when known; do not quote only a broad topic.
 Break the question into 1-4 concise facets (not factual answers). Keep the user's time frame,
 population, jurisdiction and comparison. For current questions include today's date/year.
 Do not assume the user's premise is true. Return queries and facets.
@@ -31,6 +34,9 @@ using ONLY supplied numeric source_id values. Copy a short, contiguous verbatim 
 (roughly 8-25 words) for each citation, exactly as it appears in document text.
 The FULL claim must be supported by the quoted evidence and adjacent context. Every cited
 source must meaningfully support the claim. Preserve qualifications, numbers, dates and scope.
+Use original experimental papers for numerical research results, not a product blog's summary.
+Distinguish percentage points from relative percentage improvements. When a question asks what
+an original paper reported, cite that paper directly or explicitly identify the secondary account.
 kind=finding for directly supported facts; inference for a cautious deduction explicitly
 worded as such; conflict for conflicting evidence, citing both sides. Never invent URLs.
 Use facets exactly as supplied. Do not put citation numbers or URLs inside the claim text;
@@ -46,8 +52,11 @@ per zero-based claim_index. Mark supported=true ONLY if the entire atomic claim 
 each citation supports its attributed assertion, and dates, population, causal strength and
 numbers match. A quote about correlation does not establish causation. A source's claim is
 not established truth. For an inference, demand a defensible deduction and explicit uncertainty.
+Check source provenance: original-paper results require direct evidence from that paper;
+secondary accounts must be explicitly attributed. Check percentage points versus percentages.
 For conflicting evidence, check each side is attributed accurately. Missing or ambiguous
 support means supported=false. Review every claim exactly once. Be conservative.
+Keep each verdict reason concise, under 180 characters.
 """
 
 
@@ -209,7 +218,9 @@ class ResearchAgent:
             try:
                 review = await providers.model(REVIEW, {"question": question, "claims": [
                     {"claim_index": i, "text": c["claim"].text, "kind": c["claim"].kind, "evidence": c["evidence"]}
-                    for i, c in enumerate(candidates)]}, Review, stage="evidence review", max_tokens=2000)
+                    for i, c in enumerate(candidates)], "sources": [
+                        {"source_id": s.id, "title": s.title, "url": s.url} for s in self.sources
+                    ]}, Review, stage="evidence review", max_tokens=3000)
                 for i, candidate in enumerate(candidates):
                     verdicts = [v for v in review.verdicts if v.claim_index == i]
                     if len(verdicts) == 1 and verdicts[0].supported:

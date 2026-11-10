@@ -1,8 +1,12 @@
 # EvidenceDesk demo recording
 
-Status: both real API connectivity probes passed on November 10, 2026. Full research validation and recording are pending resolution of this workstation's synthetic proxy DNS addresses, which currently cause source reachability checks to reject documents. This file is a recording plan, not evidence of a completed video.
+**[Watch or download the 1:45 English walkthrough](https://raw.githubusercontent.com/Wwang1119/evidencedesk/main/demo/evidencedesk-demo.mp4).** The MP4 is also included in this directory. No sign-in is needed for the public raw file.
 
-## Record a real 2–3 minute run
+Recorded on November 10, 2026, using frames captured from actual browser sessions with real Nebius Token Factory and Tavily calls. The sequence shows a focused question about the original RAG paper, live retrieval, seven numbered claims, a citation opening the actual arXiv paper, and a second live run that rejects a fictional premise. The narration is synthesized English. Waiting time is shortened and frames are held for explanation; this is a narrated walkthrough, not an unedited real-time screen recording. The research runs themselves took 44.07 seconds and 35.8 seconds.
+
+Format: H.264/AAC MP4, 1280 × 780, 104.65 seconds, approximately 2.2 MB. Source captures and intermediate audio remain in ignored `demo/recordings/`. See [observed validation and limitations](VALIDATION.md). Run the local application with your own keys to reproduce the interaction; results can differ.
+
+## Re-recording guide
 
 1. **0:00–0:20 — User and need.** Open the local UI. Explain: “EvidenceDesk helps university students start a coursework literature review with an evidence trail behind each published claim.” Show the configured-services indicator without opening `.env` or account settings.
 2. **0:20–1:10 — Question to live evidence.** Choose the RAG literature-review question and click **Build research brief**. Show planning, live Tavily search, document extraction, Nebius synthesis and support review. If waiting is edited, label the cut explicitly. Do not imply a shortened video duration is the actual latency.
@@ -12,7 +16,7 @@ Status: both real API connectivity probes passed on November 10, 2026. Full rese
 
 Keep the video in English. Avoid credentials, inbox contents, university email addresses, personal browser tabs and unrelated notifications. Store raw recordings under ignored `demo/recordings/`; publish only the reviewed final file or release asset. A real-time demo may exceed three minutes depending on provider latency; make any cuts transparent.
 
-## Before publication
+## Reproduction checks
 
 - Both `doctor` API probes must pass using real keys.
 - Run and inspect the three examples in `examples/questions.json`.

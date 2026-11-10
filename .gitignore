@@ -11,5 +11,6 @@ dist/
 build/
 .DS_Store
 demo/*.mp4
+!demo/evidencedesk-demo.mp4
 demo/*.webm
 demo/recordings/

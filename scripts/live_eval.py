@@ -20,8 +20,11 @@ async def main():
     rows = []
     for prompt in prompts:
         print(f"Running real APIs: {prompt['id']}", flush=True)
+        async def progress(event):
+            if event.get("message"):
+                print(f"  {event['elapsed']:6.1f}s {event['message']}", flush=True)
         try:
-            brief = await ResearchAgent(settings).research(prompt["question"])
+            brief = await ResearchAgent(settings, progress).research(prompt["question"])
             (out / f"{prompt['id']}.json").write_text(brief.model_dump_json(indent=2))
             (out / f"{prompt['id']}.md").write_text(brief.markdown)
             rows.append({"example":prompt["id"], "status":brief.status, **brief.stats,

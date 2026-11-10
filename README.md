@@ -6,7 +6,7 @@ Built by **Wang Yexiang** for the **ODSC × Nebius Hackathon — Build a Researc
 
 EvidenceDesk helps university students start a coursework literature review: ask a focused question, search the live web, read selected documents, and inspect the original evidence behind each finding. It is a lightweight Python application; all model inference runs on Nebius Token Factory. No local models, vector database, JavaScript build system or agent framework are required.
 
-> **Validation status (2026-11-10):** The 27 offline contract and citation tests pass. Both required providers have passed real connectivity probes through the project's provider adapter: Nebius generated schema-valid JSON using the configured Qwen open model, and Tavily returned live search results. A separate Tavily Extract probe also passed. The first three-question live evaluation retrieved no usable sources because this workstation's proxy returned synthetic DNS addresses, which the public-URL gate rejected. Complete research evaluation and the recorded demo are still pending; no complete live research answer or benchmark is claimed yet.
+> **Validation status (2026-11-10):** All 36 offline tests pass. Both real API probes pass. Three complete live research runs produced two partial briefs with seven claims each and one insufficient-evidence brief with no claims. A separate browser demonstration answered a focused original-paper question in 44.07 seconds, with seven claims citing the actual RAG paper. These are observed runs, not an accuracy benchmark. See [validation results and limitations](demo/VALIDATION.md).
 
 ## Run locally
 
@@ -28,7 +28,7 @@ python -m evidencedesk serve
 
 Open **http://127.0.0.1:8765**. Choose an example or enter your question, then select **Build research brief**. Click a numbered citation to inspect its quote, source context and original URL. Export Markdown for your notes or Audit JSON to inspect the research trace.
 
-Source verification requires DNS answers containing globally routable addresses. A proxy that returns synthetic addresses such as `198.18.0.0/15` will cause the URL gate to exclude sources, even when the two provider APIs are reachable. Network compatibility for that setup is being investigated; the private-address check remains enabled.
+Source checks connect only to validated public IP addresses and preserve the original hostname for HTTP and TLS certificate verification. If system DNS returns only synthetic proxy addresses in `198.18.0.0/15`, the checker queries Cloudflare's HTTPS DNS endpoint for that public domain, validates the answer, and pins the connection to a public IP. This sends the source domain to Cloudflare, without API credentials. Real private DNS answers and literal private/reserved IPs remain blocked; system proxy settings are never changed.
 
 For the exact dependency versions used during development, install `requirements-lock.txt` before the editable install.
 
@@ -78,6 +78,8 @@ flowchart TD
 
 The orchestrator is a small, bounded state machine in [`agent.py`](evidencedesk/agent.py). Nebius plans up to two complementary queries and named question facets. Tavily retrieves five results per query using advanced search. The application deduplicates tracking variants, caps each hostname at two candidates, and gives a modest, transparent preference to likely academic, government and documentation sources. This heuristic is **not a credibility score**.
 
+Positive `site:` filters from the plan are passed to Tavily's native `include_domains` parameter. Nebius requests use strict JSON Schema output; local schema validation, exact-quote checks and support review still decide what can be published. Review includes source titles/URLs to check attribution and distinguish original papers from commentary.
+
 Up to four initial documents are checked and extracted. A missing evidence facet can trigger one targeted follow-up query, with space for two more documents. Research stops at **three logical searches and six extracted documents**. Source text is normalized and capped at 14,000 characters per document to bound context and cost. This may omit relevant text, which can lead to abstention. Normally three model calls are made (plan, synthesize, review); a follow-up can add a second synthesis. A failed plan falls back to searching the original question, but an answer still requires real Nebius synthesis and support review.
 
 Integrations are implemented as direct, readable REST calls in [`providers.py`](evidencedesk/providers.py):
@@ -109,14 +111,16 @@ The JSON export includes claim-to-source mappings, review reasons, query/tool tr
 - A citation/support failure withholds the affected claim. If review fails, no candidate claim is published.
 - Source content is passed as untrusted data, separate from trusted instructions. Retrieved content never executes code or requests additional tools.
 - The server binds only to loopback, rejects cross-origin research requests, serves only its dedicated static folder and permits one research run at a time. Closing the streaming connection cancels its run.
-- Public-URL checks reject private/reserved IPs, credential-bearing URLs and redirects to private hosts. DNS validation is best-effort and does not pin DNS; this local prototype is **not a hardened multi-tenant fetch service**. Do not expose it directly to the internet without authentication, egress controls and rate limits.
+- Public-URL checks reject private/reserved IPs and credential-bearing URLs, pin the validated destination IP while preserving HTTP Host and TLS SNI, and recheck every redirect. The synthetic-proxy DNS fallback is described above. This local prototype is **not a hardened multi-tenant fetch service**. Do not expose it directly to the internet without authentication, egress controls and rate limits.
 - Questions and selected evidence are sent to the configured service providers. Keep confidential coursework and personal information out of research prompts.
 
 ## Examples and demonstration
 
 Three live question prompts are built into the UI and listed in [`examples/questions.json`](examples/questions.json): a RAG literature review, spaced retrieval practice, and a deliberately fictional premise that should produce an evidence gap. Search outcomes and wording vary over time.
 
-See [`demo/README.md`](demo/README.md) for the 2–3 minute recording sequence. The demo should show a real search/inference trace, a cited answer, an original source opening, and an insufficient-evidence case. There is no hidden canned-answer mode.
+**[Watch the 1:45 English walkthrough (MP4)](https://raw.githubusercontent.com/Wwang1119/evidencedesk/main/demo/evidencedesk-demo.mp4)** · [Recording notes](demo/README.md) · [Observed validation and limitations](demo/VALIDATION.md)
+
+The walkthrough shows frames captured from real browser runs: a question, live retrieval, a numbered answer, an original paper opening, and an insufficient-evidence case. English narration is synthesized and waiting periods are shortened; playback duration is not actual inference latency. There is no hidden canned-answer mode. The local application is also a runnable demonstration using your own keys.
 
 ## Test and reproduce
 

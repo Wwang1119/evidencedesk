@@ -34,6 +34,8 @@ def transport(*, review=True, quote=QUOTE, empty=False, auth_error=False, review
         assert request.url.path == "/v1/chat/completions"
         assert request.headers["Authorization"] == "Bearer test-nebius-credential"
         assert body["model"] == "synthetic-test-model"
+        assert body["response_format"]["type"] == "json_schema"
+        assert body["response_format"]["json_schema"]["strict"] is True
         system = body["messages"][0]["content"]
         if auth_error:
             return httpx.Response(401, json={"secret":"never reflect provider response bodies"})
@@ -106,3 +108,15 @@ async def test_auth_error_does_not_leak_response_or_keys():
     assert "401" in str(caught.value)
     assert "secret" not in str(caught.value)
     assert "credential" not in str(caught.value)
+
+
+async def test_planned_site_filter_is_enforced_by_tavily_native_filter():
+    seen = []
+    def handle(request):
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"results":[]})
+    async def emit(*args, **kwargs):
+        pass
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        await Providers(settings(), client, emit).search('original paper site:arxiv.org -site:example.org')
+    assert seen[0]["include_domains"] == ["arxiv.org"]

@@ -1,4 +1,6 @@
+import asyncio
 import hashlib
+import socket
 from unittest.mock import AsyncMock
 
 import httpx
@@ -52,24 +54,76 @@ def test_tracking_urls_deduplicated_but_semantic_query_preserved():
     assert sum(x["domain"] == "a.edu" for x in ranked) == 2
 
 
-@pytest.mark.parametrize("url", ["file:///etc/passwd", "https://user:pass@example.com", "http://localhost/a", "http://127.0.0.1", "http://169.254.169.254/latest", "http://[::1]/", "https://a.local/private"])
+@pytest.mark.parametrize("url", ["file:///etc/passwd", "https://user:pass@example.com", "http://localhost/a", "http://127.0.0.1", "http://169.254.169.254/latest", "http://[::1]/", "https://a.local/private", "https://198.18.0.1/"])
 async def test_private_or_credential_urls_blocked(url):
     with pytest.raises(ValueError):
         await assert_public(url)
 
 
+def mock_dns(monkeypatch, address):
+    monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", AsyncMock(return_value=[
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", (address, 0))]))
+
+
 async def test_redirect_into_private_host_rejected(monkeypatch):
-    async def validate(url):
-        if "localhost" in url:
-            raise ValueError("Private host")
-        return url
-    monkeypatch.setattr("evidencedesk.evidence.assert_public", validate)
-    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda req: httpx.Response(302, headers={"location":"http://localhost/private"}))) as client:
+    mock_dns(monkeypatch, "93.184.216.34")
+    seen = []
+    def handle(req):
+        seen.append(req)
+        return httpx.Response(302, headers={"location":"http://localhost/private"})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         assert await check_url(client, "https://a.edu/study") is None
+    assert len(seen) == 1
 
 
 @pytest.mark.parametrize("status", [403, 404, 429, 500])
 async def test_unreachable_sources_excluded(monkeypatch, status):
-    monkeypatch.setattr("evidencedesk.evidence.assert_public", AsyncMock(side_effect=lambda x:x))
+    mock_dns(monkeypatch, "93.184.216.34")
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda req: httpx.Response(status))) as client:
+        assert await check_url(client, "https://a.edu/study") is None
+
+
+async def test_synthetic_proxy_dns_uses_public_dns_and_pins_tls_target(monkeypatch):
+    mock_dns(monkeypatch, "198.18.0.113")
+    seen = []
+    def handle(req):
+        seen.append(req)
+        assert "Authorization" not in req.headers
+        if req.url.host == "cloudflare-dns.com":
+            assert req.url.params["name"] == "a.edu"
+            return httpx.Response(200, json={"Status":0,"Answer":[{"type":1,"data":"93.184.216.34"}]})
+        assert req.url.host == "93.184.216.34"
+        assert req.headers["Host"] == "a.edu"
+        assert req.extensions["sni_hostname"] == "a.edu"
+        assert req.headers["Connection"] == "close"
+        return httpx.Response(200)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        result = await check_url(client, "https://a.edu/study")
+    assert result == {"final_url":"https://a.edu/study","http_status":200}
+    assert len(seen) == 2
+
+
+@pytest.mark.parametrize("payload", [
+    {"Status":0,"Answer":[{"type":1,"data":"127.0.0.1"}]},
+    {"Status":0,"Answer":[{"type":1,"data":"93.184.216.34"},{"type":1,"data":"10.0.0.1"}]},
+    {"Status":0,"Answer":[{"type":1,"data":"198.18.0.2"}]},
+    {"Status":3}, {"Status":0,"Answer":[{"type":1,"data":"invalid"}]},
+])
+async def test_public_dns_failure_or_private_answer_never_fetched(monkeypatch, payload):
+    mock_dns(monkeypatch, "198.18.0.113")
+    seen = []
+    def handle(req):
+        seen.append(req)
+        assert req.url.host == "cloudflare-dns.com"
+        return httpx.Response(200, json=payload)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        assert await check_url(client, "https://a.edu/study") is None
+    assert len(seen) == 1
+
+
+async def test_real_private_dns_is_blocked_without_public_dns_fallback(monkeypatch):
+    mock_dns(monkeypatch, "10.0.0.1")
+    def handle(req):
+        raise AssertionError("Private DNS answers must not trigger any HTTP request")
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         assert await check_url(client, "https://a.edu/study") is None

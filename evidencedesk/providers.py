@@ -54,7 +54,9 @@ class Providers:
             "model": self.settings.model,
             "temperature": 0.1,
             "max_tokens": max_tokens,
-            "response_format": {"type": "json_object"},
+            "response_format": {"type": "json_schema", "json_schema": {
+                "name": schema.__name__, "schema": schema.model_json_schema(), "strict": True,
+            }},
             "messages": [
                 {"role": "system", "content": system + "\nReturn only a JSON object matching this schema:\n" + json.dumps(schema.model_json_schema())},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
@@ -80,10 +82,14 @@ class Providers:
     async def search(self, query):
         self.calls["tavily_search"] += 1
         started = perf_counter()
-        data = await self._post("Tavily Search", "https://api.tavily.com/search", self.settings.tavily_key, {
+        body = {
             "query": query, "search_depth": "advanced", "topic": "general",
             "max_results": 5, "include_answer": False, "include_raw_content": False,
-        })
+        }
+        domains = re.findall(r"(?<![-\w])site:((?:[a-z0-9-]+\.)+[a-z]{2,})(?=\s|$)", query.lower())
+        if domains:
+            body["include_domains"] = list(dict.fromkeys(domains))
+        data = await self._post("Tavily Search", "https://api.tavily.com/search", self.settings.tavily_key, body)
         await self.emit("tool", service="Tavily", operation="search", query=query,
                         results=len(data.get("results", [])), request_id=data.get("request_id"),
                         seconds=round(perf_counter()-started, 2))

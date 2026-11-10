@@ -26,33 +26,77 @@ def canonical_url(url):
         return ""
 
 
-async def assert_public(url):
+SYNTHETIC_PROXY_RANGE = ipaddress.ip_network("198.18.0.0/15")
+PUBLIC_DNS_URL = "https://cloudflare-dns.com/dns-query"
+
+
+async def resolve_public(url, client=None):
+    """Resolve and validate a target; never connect to a synthetic or private IP.
+
+    Only a hostname resolved entirely into the proxy benchmarking range may use
+    the public-DNS fallback. Literal IPs and private DNS answers cannot use it.
+    """
     safe = canonical_url(url)
     if not safe:
         raise ValueError("Unsupported URL")
     host = urlsplit(safe).hostname
     if host == "localhost" or host.endswith((".local", ".localhost", ".internal")):
         raise ValueError("Private host blocked")
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None:
+        if not literal.is_global:
+            raise ValueError("Non-public address blocked")
+        return safe, str(literal)
     loop = asyncio.get_running_loop()
     try:
         records = await asyncio.wait_for(loop.getaddrinfo(host, None, type=socket.SOCK_STREAM), timeout=5)
     except (OSError, TimeoutError):
         raise ValueError("DNS lookup failed") from None
-    if not records or any(not ipaddress.ip_address(record[4][0]).is_global for record in records):
+    addresses = list(dict.fromkeys(ipaddress.ip_address(record[4][0]) for record in records))
+    synthetic = addresses and all(a.version == 4 and a in SYNTHETIC_PROXY_RANGE for a in addresses)
+    if synthetic and client is not None:
+        # Public research domains only. No provider credentials accompany this request.
+        response = await client.get(PUBLIC_DNS_URL, params={"name": host, "type": "A"},
+                                    headers={"Accept": "application/dns-json"},
+                                    follow_redirects=False, timeout=8)
+        if response.status_code != 200:
+            raise ValueError("Public DNS lookup failed")
+        data = response.json()
+        if not isinstance(data, dict) or data.get("Status") != 0:
+            raise ValueError("Public DNS lookup failed")
+        answers = data.get("Answer", [])
+        if not isinstance(answers, list) or any(not isinstance(answer, dict) for answer in answers):
+            raise ValueError("Invalid public DNS response")
+        addresses = [ipaddress.ip_address(answer.get("data", "")) for answer in answers
+                     if answer.get("type") in (1, 28)]
+    if not addresses or any(not address.is_global for address in addresses):
         raise ValueError("Non-public address blocked")
-    return safe
+    addresses.sort(key=lambda a: a.version)
+    return safe, str(addresses[0])
+
+
+async def assert_public(url):
+    return (await resolve_public(url))[0]
 
 
 async def check_url(client, url):
-    """GET headers, do not download full bodies. Recheck each redirect's target."""
+    """Pin each public IP, preserve Host/TLS SNI, and recheck every redirect."""
     try:
-        current = await assert_public(url)
+        current = url
         for _ in range(5):
-            async with client.stream("GET", current, follow_redirects=False,
+            current, address = await resolve_public(current, client)
+            original = httpx.URL(current)
+            async with client.stream("GET", original.copy_with(host=address), follow_redirects=False,
                                      headers={"User-Agent": "EvidenceDesk/0.1 (research source verification)",
-                                              "Accept": "text/html,application/pdf,text/plain;q=0.9,*/*;q=0.5"}, timeout=12) as response:
+                                              "Host": original.netloc.decode("ascii"),
+                                              "Connection": "close",
+                                              "Accept": "text/html,application/pdf,text/plain;q=0.9,*/*;q=0.5"},
+                                     extensions={"sni_hostname": original.raw_host.decode("ascii")}, timeout=12) as response:
                 if response.status_code in (301, 302, 303, 307, 308):
-                    current = await assert_public(urljoin(current, response.headers.get("location", "")))
+                    current = urljoin(current, response.headers.get("location", ""))
                     continue
                 if response.status_code != 200:
                     return None
